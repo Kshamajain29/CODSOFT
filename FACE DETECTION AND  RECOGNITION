@@ -1,0 +1,49 @@
+!pip install opencv-python
+import numpy as np
+from PIL import Image
+import cv2
+import matplotlib.pyplot as plt
+import tensorflow as tf
+print("Libraries imported successfully.")
+haar_cascade_url = 'https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml'
+haar_cascade_filename = 'haarcascade_frontalface_default.xml'
+haar_cascade_path = tf.keras.utils.get_file(haar_cascade_filename, origin=haar_cascade_url, cache_dir='.', cache_subdir='content')
+face_cascade = cv2.CascadeClassifier(haar_cascade_path)
+if not face_cascade.empty():
+    print("Haar Cascade classifier loaded successfully.")
+else:
+    print("Error: Could not load Haar Cascade classifier.")
+def detect_faces(image):
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(
+        gray_image,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(30, 30)
+    )
+    return faces
+print("detect_faces function defined successfully.")
+def draw_faces_and_display(image, faces):
+    image_with_faces = image.copy()
+    for (x, y, w, h) in faces:
+        cv2.rectangle(image_with_faces, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    plt.figure(figsize=(10, 8))
+    plt.imshow(image_with_faces)
+    plt.title(f"Detected Faces: {len(faces)}")
+    plt.axis('off')
+    plt.show()
+print("draw_faces_and_display function defined successfully.")
+filename = r"/Fear.jpg"
+try:
+    img_pil = Image.open(filename)
+    img_np = np.array(img_pil)
+    print(f"Successfully loaded image: {filename}")
+    print(f"Image shape: {img_np.shape}")
+    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+    faces = detect_faces(img_bgr)
+    print(f"Detected {len(faces)} face(s).")
+    draw_faces_and_display(img_np, faces)
+except FileNotFoundError:
+    print(f"Error: File not found at {filename}. Please ensure the image is uploaded to the root directory /.")
+except Exception as e:
+    print(f"An error occurred during image processing: {e}")
