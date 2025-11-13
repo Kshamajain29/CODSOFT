@@ -1,0 +1,72 @@
+from PIL import Image
+import torch
+from transformers import BlipProcessor, BlipForConditionalGeneration
+import matplotlib.pyplot as plt
+import os
+import numpy as np
+from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.models import Model
+def generate_caption(image_path, style="default"):
+    try:
+        image = Image.open(image_path).convert('RGB')
+        inputs = processor(images=image, return_tensors="pt")
+
+        if style == "funny":
+            generation_args = {
+                "do_sample": True,
+                "top_p": 0.9,
+                "temperature": 1.2,
+                "max_new_tokens": 40
+            }
+        elif style == "poetic":
+            generation_args = {
+                "do_sample": True,
+                "top_k": 50,
+                "temperature": 1.0,
+                "max_new_tokens": 60
+            }
+        elif style == "detailed":
+            generation_args = {
+                "do_sample": True,
+                "temperature": 0.7,
+                "top_p": 0.85,
+                "max_new_tokens": 70
+            }
+        else:
+            generation_args = {
+                "do_sample": False,
+                "max_new_tokens": 40
+            }
+
+        with torch.no_grad():
+            output = model.generate(**inputs, **generation_args)
+
+        caption = processor.decode(output[0], skip_special_tokens=True)
+        return caption
+
+    except Exception as e:
+        return f"Captioning Error: {str(e)}"
+resnet = ResNet50(weights='imagenet')
+feature_extractor_model = Model(inputs=resnet.input, outputs=resnet.get_layer('avg_pool').output)
+def extract_features(image_path):
+    img = image.load_img(image_path, target_size=(224, 224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = preprocess_input(img_array)
+    features = feature_extractor_model.predict(img_array)
+    return features
+def main():
+    img_path = "example.jpg"
+    if not os.path.exists(img_path):
+        print("Image file not found. Please add an image named 'example.jpg'")
+        return
+    features = extract_features(img_path)
+    caption = generate_caption(img_path)
+    img = Image.open(img_path)
+    plt.imshow(img)
+    plt.axis('off')
+    plt.title("Caption: " + caption)
+    plt.show()
+if __name__ == "__main__":
+    main()
